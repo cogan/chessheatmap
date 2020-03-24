@@ -6,3 +6,16 @@ body {
 #myBoard {
   margin: 0 auto;
 }
+
+.gray-circle {
+	background: #696969;
+	border-radius: 50%;
+	height:15px;
+	width:15px;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  margin: auto;
+}
