@@ -26,6 +26,20 @@ function onDragStart(source, piece, position, orientation) {
       (chess.turn() === 'b' && piece.search(/^w/) !== -1)) {
     return false;
   }
+
+  // get list of possible moves for this square
+  var moves = chess.moves({
+    square: source,
+    verbose: true
+  })
+
+  // exit if there are no moves available for this square
+  if (moves.length === 0) return
+
+  // highlight the possible squares for this piece
+  for (var i = 0; i < moves.length; i++) {
+    grayCircle(moves[i].to)
+  }
 }
 
 function onDragMove(newLocation, oldLocation, source,
@@ -48,26 +62,6 @@ function onDragMove(newLocation, oldLocation, source,
   if (newLocation == source) {
     paintHeatmap(chess);
   }
-}
-
-function onMouseoverSquare(square, piece) {
-  // get list of possible moves for this square
-  var moves = chess.moves({
-    square: square,
-    verbose: true
-  })
-
-  // exit if there are no moves available for this square
-  if (moves.length === 0) return
-
-  // highlight the possible squares for this piece
-  for (var i = 0; i < moves.length; i++) {
-    grayCircle(moves[i].to)
-  }
-}
-
-function onMouseoutSquare(square, piece) {
-  removeGrayCircles()
 }
 
 function onDrop(source, target) {
@@ -338,8 +332,6 @@ var config = {
   onDragStart: onDragStart,
   onDragMove: onDragMove,
   onDrop: onDrop,
-  onMouseoutSquare: onMouseoutSquare,
-  onMouseoverSquare: onMouseoverSquare,
   onSnapEnd: onSnapEnd,
 }
 
