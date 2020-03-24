@@ -7,7 +7,17 @@ var whitePiecesHeatmap = ['#ccffcc', '#66ff66', '#00ff00', '#009900', '#003300']
 var blackPiecesHeatmap = ['#ffad99', '#ff8566', '#ff5c33', '#ff3300', '#cc2900']
 var tensionColor = '#ffff66'
 
-function onDragStart (source, piece, position, orientation) {
+function removeGrayCircles() {
+  $('#myBoard .gray-circle').remove();
+}
+
+function grayCircle(square) {
+  var $square = $('#myBoard .square-' + square)
+
+  $square.append('<div class="gray-circle" />');
+}
+
+function onDragStart(source, piece, position, orientation) {
   // do not pick up pieces if the game is over
   if (chess.game_over()) return false;
 
@@ -18,7 +28,62 @@ function onDragStart (source, piece, position, orientation) {
   }
 }
 
-function onDrop (source, target) {
+function onDragMove(newLocation, oldLocation, source,
+                     piece, position, orientation) {
+  var legalMoves = chess.moves({
+    square: source,
+    verbose: true
+  });
+
+  if (legalMoves.find((move) => { return move.to == newLocation })) {
+    var hypotheticalChess = new Chess(chess.fen());
+    var hypotheticalMove = hypotheticalChess.move({
+      from: source,
+      to: newLocation,
+      promotion: 'q' // NOTE: always promote to a queen for simplicity
+    })
+    console.log("LOGGING HYPO MOVE!");
+    console.log(hypotheticalMove);
+    console.log("END LOGGING HYPO MOVE!");
+    paintHeatmap(hypotheticalChess);
+  }
+
+  if (newLocation == source) {
+    paintHeatmap(chess);
+  }
+
+  // console.log('New location: ' + newLocation)
+  // console.log('Old location: ' + oldLocation)
+  // console.log('Source: ' + source)
+  // console.log('Piece: ' + piece)
+  // console.log('Position: ' + Chessboard.objToFen(position))
+  // console.log('Orientation: ' + orientation)
+  // console.log('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
+}
+
+function onMouseoverSquare(square, piece) {
+  // get list of possible moves for this square
+  var moves = chess.moves({
+    square: square,
+    verbose: true
+  })
+
+  // exit if there are no moves available for this square
+  if (moves.length === 0) return
+
+  // highlight the possible squares for this piece
+  for (var i = 0; i < moves.length; i++) {
+    grayCircle(moves[i].to)
+  }
+}
+
+function onMouseoutSquare(square, piece) {
+  removeGrayCircles()
+}
+
+function onDrop(source, target) {
+  removeGrayCircles();
+
   // see if the move is legal
   var move = chess.move({
     from: source,
@@ -30,20 +95,21 @@ function onDrop (source, target) {
   if (move === null) return 'snapback';
 
   updateStatus();
-  paintHeatmap();
+  paintHeatmap(chess);
 }
 
 function onSnapEnd () {
   board.position(chess.fen())
 }
 
-function paintHeatmap() {
+function paintHeatmap(chess) {
+  console.log(chess.turn());
   unpaintHeatmap()
 
-  var attackedSquaresWhite = getAttackedSquares(chess.WHITE);
-  var attackedSquaresBlack = getAttackedSquares(chess.BLACK);
-  var defendedSquaresWhite = getDefendedSquares(chess.WHITE);
-  var defendedSquaresBlack = getDefendedSquares(chess.BLACK);
+  var attackedSquaresWhite = getAttackedSquares(chess, chess.WHITE);
+  var attackedSquaresBlack = getAttackedSquares(chess, chess.BLACK);
+  var defendedSquaresWhite = getDefendedSquares(chess, chess.WHITE);
+  var defendedSquaresBlack = getDefendedSquares(chess, chess.BLACK);
 
   var targetedSquaresWhite = mergeFrequencyCounters(
       attackedSquaresWhite, defendedSquaresWhite)
@@ -84,12 +150,14 @@ function paintHeatmap() {
   }
 }
 
-function getAttackedSquares(color) {
+function getAttackedSquares(chess, color) {
   // We can only determine moves for the color whose turn it is currently, so
   // we create a new gamestate for this color and use that to get the attacked
   // squares.
-  var newFen = setTurnInFen(chess.fen(), color);
+  var newFen = setTurnInFen(chess, color);
   var chessTmp = new Chess(newFen);
+
+  console.log(newFen);
 
   // get all the squares attacked by this color
   var attackedSquares = {};
@@ -101,7 +169,8 @@ function getAttackedSquares(color) {
         // For pawns, the attacked squares are different from the SQUARES
         // they can move to, so we need to write a little custom code to
         // figure out which squares are being attacked.
-        squaresAttackedByPawn = getSquaresAttackedByPawn(square, piece.color);
+        squaresAttackedByPawn =
+            getSquaresAttackedByPawn(chess, square, piece.color);
         squaresAttackedByPawn.forEach(
             square => updateFrequencyCounter(square, attackedSquares));
       } else {
@@ -116,7 +185,7 @@ function getAttackedSquares(color) {
   return attackedSquares;
 }
 
-function getSquaresAttackedByPawn(square, color) {
+function getSquaresAttackedByPawn(chess, square, color) {
   // TODO(cogan): calculate using the 0x88 board representation
   // TODO(cogan): change this to only include squares that don't
   // hit our own pieces, because those should count as defended squares
@@ -148,11 +217,11 @@ function getSquaresAttackedByPawn(square, color) {
   return squaresAttackedByPawn;
 }
 
-function getDefendedSquares(color) {
+function getDefendedSquares(chess, color) {
   // We can only determine moves for the color whose turn it is currently, so
   // we create a new gamestate for this color and use that to get the attacked
   // squares.
-  var newFen = setTurnInFen(chess.fen(), color);
+  var newFen = setTurnInFen(chess, color);
   var chessTmp = new Chess(newFen);
   var board = chessTmp.board_0x88();
 
@@ -226,8 +295,8 @@ function mergeFrequencyCounters(freqCounter1, freqCounter2) {
   return mergedResult;
 }
 
-function setTurnInFen(fen, color) {
-  var tokens = fen.split(' ');
+function setTurnInFen(chess, color) {
+  var tokens = chess.fen().split(' ');
   tokens[1] = color;
 
   if (chess.turn() != color) {
@@ -281,10 +350,13 @@ var config = {
   draggable: true,
   position: 'start',
   onDragStart: onDragStart,
+  onDragMove: onDragMove,
   onDrop: onDrop,
+  onMouseoutSquare: onMouseoutSquare,
+  onMouseoverSquare: onMouseoverSquare,
   onSnapEnd: onSnapEnd,
 }
 board = Chessboard('myBoard', config)
 
 updateStatus();
-paintHeatmap();
+paintHeatmap(chess);
