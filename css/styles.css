@@ -5,6 +5,7 @@ body {
 
 #myBoard {
   margin: 0 auto;
+  position: fixed;
 }
 
 .gray-circle {
