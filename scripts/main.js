@@ -42,23 +42,12 @@ function onDragMove(newLocation, oldLocation, source,
       to: newLocation,
       promotion: 'q' // NOTE: always promote to a queen for simplicity
     })
-    console.log("LOGGING HYPO MOVE!");
-    console.log(hypotheticalMove);
-    console.log("END LOGGING HYPO MOVE!");
     paintHeatmap(hypotheticalChess);
   }
 
   if (newLocation == source) {
     paintHeatmap(chess);
   }
-
-  // console.log('New location: ' + newLocation)
-  // console.log('Old location: ' + oldLocation)
-  // console.log('Source: ' + source)
-  // console.log('Piece: ' + piece)
-  // console.log('Position: ' + Chessboard.objToFen(position))
-  // console.log('Orientation: ' + orientation)
-  // console.log('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
 }
 
 function onMouseoverSquare(square, piece) {
@@ -103,7 +92,6 @@ function onSnapEnd () {
 }
 
 function paintHeatmap(chess) {
-  console.log(chess.turn());
   unpaintHeatmap()
 
   var attackedSquaresWhite = getAttackedSquares(chess, chess.WHITE);
@@ -156,8 +144,6 @@ function getAttackedSquares(chess, color) {
   // squares.
   var newFen = setTurnInFen(chess, color);
   var chessTmp = new Chess(newFen);
-
-  console.log(newFen);
 
   // get all the squares attacked by this color
   var attackedSquares = {};
@@ -356,6 +342,12 @@ var config = {
   onMouseoverSquare: onMouseoverSquare,
   onSnapEnd: onSnapEnd,
 }
+
+// Prevent the screen from scrolling on mobile when we are trying to play.
+$('#myBoard').bind('touchmove', function(e) {
+    e.preventDefault();
+});
+
 board = Chessboard('myBoard', config)
 
 updateStatus();
