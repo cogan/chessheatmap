@@ -8,10 +8,11 @@ body {
 }
 
 .gray-circle {
-	background: #696969;
-	border-radius: 50%;
-	height:15px;
-	width:15px;
+  background: #696969;
+  opacity: 0.5;
+  border-radius: 50%;
+  height:20px;
+  width:20px;
   position: absolute;
   top: 0;
   left: 0;
